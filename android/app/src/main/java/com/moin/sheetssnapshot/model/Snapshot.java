@@ -13,6 +13,12 @@ public class Snapshot {
     @SerializedName("date")
     private String date;
 
+    public Snapshot(String id, String imageUrl, String date) {
+        this.id = id;
+        this.imageUrl = imageUrl;
+        this.date = date;
+    }
+
     public String getId() {
         return id;
     }

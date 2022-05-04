@@ -1,13 +1,13 @@
-const express = require('express');
+const app = require('express')();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
 const bodyParser = require('body-parser');
 const multer  = require('multer');
 const multerS3 = require('multer-s3');
-const fs = require('fs');
 const AWS = require('aws-sdk');
 
 require("dotenv").config();
 
-const app = express();
 app.use(bodyParser.json());
 
 const mongo = require("mongodb").MongoClient;
@@ -58,7 +58,7 @@ app.post('/snapshot', (req, res) => {
 
         console.log(image);
 
-        const date = new Date().toLocaleString();
+        const date = new Date().toUTCString();
         console.log(date);
 
         const object = {
@@ -74,16 +74,16 @@ app.post('/snapshot', (req, res) => {
             }
 
             console.log(result);
-            res.status(200).json({
-                ok: true,
-                imageUrl: imageUrl
-            });
+            console.log(object);
+            res.status(200).json(object);
+
+            io.emit('new snapshot', object);
         });
     });
 });
 
 app.get('/snapshot', (req, res) => {
-    snapshots.find({}).toArray((err, result) => {
+    snapshots.find({}).sort({"_id": -1}).toArray((err, result) => {
         if(err) {
             res.status(500).send(error);
         }
@@ -94,8 +94,15 @@ app.get('/snapshot', (req, res) => {
     });
 });
 
+io.on('connection', (socket) => {
+    console.log('socket connection started');
+    socket.on('disconnect', () => {
+        console.log('socket connection ended');
+    });
+});
+
 const PORT = process.env.PORT || 80;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log('Application listening on port ' + PORT);
 
     const url = process.env.MONGO_DB_CONNECTION_URL;
